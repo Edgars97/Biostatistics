@@ -1,0 +1,146 @@
+---
+title: "Биостатистика. ДЗ №3"
+author: "Тарвидс Эдгарс"
+date: "28 03 2024"
+output: html_document
+---
+
+```{r}
+library(readxl)  # активация библиотеки для работы с файлами формата xl
+data <- read_xlsx('pima.xlsx')  # загрузка и запись датасета в переменную
+
+```
+
+```{r}
+str(data)  # определим типы переменных
+```
+```{r}
+data$diabetes <- as.factor(data$diabetes) # преобразуем перемнную diabetes в факторный тип
+```
+
+
+```{r}
+library(tidyverse)  # активация библиотеки
+```
+
+
+**Задание 1. Расчет описательных статистик для количественных переменных (glucose, pressure, mass)**
+
+```{r}
+res1 <- data %>%  # расчет описательных статистик для количественной переменной glucose
+  summarise(N = n(), mean(glucose), sd(glucose), first_quart = quantile(glucose, probs = 0.25), third_quart = quantile(glucose, probs = 0.75), min(glucose), max(glucose))
+```
+
+```{r}
+summary(data$glucose) # применение альтернативного способа получения описательных статистик
+```
+
+
+```{r}
+res2 <- data %>%  # расчет описательных статистик для количественной переменной pressure
+  summarise(N = n(), mean(pressure), sd(pressure), first_quart = quantile(pressure, probs = 0.25), third_quart = quantile(pressure, probs = 0.75), min(pressure), max(pressure))
+```
+
+```{r}
+summary(data$pressure) # применение альтернативного способа получения описательных статистик
+```
+
+
+```{r}
+res3 <- data %>%  #расчет описательных статистик для количественной переменной mass
+  summarise(N = n(), mean(mass), sd(mass), first_quart = quantile(mass, probs = 0.25), third_quart = quantile(mass, probs = 0.75), min(mass), max(mass))
+```
+
+```{r}
+summary(data$mass) # применение альтернативного способа получения описательных статистик
+```
+
+**Задание 2. Расчет описательных статистик для категориальных переменных**
+
+```{r}
+res4 <- data %>%  # расчет описательных статистик для переменной diabetes (N - абсолютная частота, percent- относительная частота)
+  group_by(diabetes) %>%
+  summarise(N = n(), percent = n()/nrow(data)*100)
+  
+```
+
+
+```{r}
+for (i in 1:nrow(data)) {  # инициализация цикла для присвоения принадлежности к конкретной возрастной группе
+     if (data$age[i] > 49){
+          data$age_group[i] <- '50+'
+     } else if (data$age[i] < 36){
+           data$age_group[i] <- '21-35'
+     } else{ 
+           data$age_group[i] = '36-49'
+     }
+}
+```
+
+```{r}
+data$age_group <- as.factor(data$age_group)  # преобразуем переменную в факторный тип
+```
+
+
+```{r}
+res5 <- data %>%  # расчет описательных статистик по возрастным группам
+  group_by(age_group) %>%
+  summarise(N = n(), percent = n()/nrow(data)*100)
+```
+
+
+**Задание 3. Расчет 90% доверительный интервал для переменной pedigree**
+
+**Способ 1**
+
+```{r}
+library(DescTools)  # активация библиотеки
+```
+```{r}
+MeanCI(data$pedigree, conf.level = 0.90)  # расчет границ 90%-го доверительного интервала
+```
+```{r}
+MeanCI(data$pedigree, conf.level = 0.90) %>%  # графическое представление 90%-го доверительного интервала
+  as.list() %>%
+  as_tibble() %>%
+  ggplot(aes(x = 1, y = mean)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = `lwr.ci`, ymax = `upr.ci`)) +
+  theme_bw()
+```
+**Способ 2**
+
+```{r}
+mean_pedigree <- mean(data$pedigree)
+sd_pedigree <- sd(data$pedigree)
+se_pedigree <- sd_pedigree / sqrt(length(data$pedigree))
+alpha <- 0.10
+df <- length(data$pedigree) - 1
+t <- qt(alpha/2, df, lower.tail = F)
+
+CI_pedigree <- c(mean_pedigree + t*se_pedigree, mean_pedigree - t*se_pedigree)
+CI_pedigree
+```
+
+
+**Задание 4. Построение графика плотности распределения, гистограммы, ящика с усами по переменной glucose**
+
+```{r}
+# График плотности вероятности, вертикальная черта отграничивает среднее значение по исследуемой переменной
+ggplot(data, aes(x = glucose)) + geom_density() + theme_bw() + geom_vline(xintercept = mean(data$glucose))
+```
+```{r}
+# Построение гистограммы
+ggplot(data, aes(glucose)) + geom_histogram(color = 'black', fill = 'red')
+```
+
+```{r}
+# Построение боксплота для переменной glucose относительной переменной diabetes
+ggplot(data, aes(diabetes, glucose, fill = diabetes)) + geom_boxplot() + theme_bw()
+```
+**Задание 5. Построение диаграммы рассеяния**
+
+```{r}
+ggplot(data, aes(x = triceps, y = mass, color = diabetes, fill = diabetes)) + geom_point() + facet_grid(.~diabetes)
+```
+
